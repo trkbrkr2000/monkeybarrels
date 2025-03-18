@@ -3,29 +3,6 @@ import mongoose, { type Model } from 'mongoose';
 import { parse } from 'csv-parse';
 import { User } from '../models/user.model';
 import { z } from 'zod';
-import e from 'express';
-
-// Define the schema for a person with the specified fields
-export const personSchema = z.object({
-    firstname: z.string()
-        .min(1, "First name is required")
-        .max(100, "First name cannot exceed 100 characters"),
-
-    lastname: z.string()
-        .min(1, "Last name is required")
-        .max(100, "Last name cannot exceed 100 characters"),
-
-    birthday: z.string()
-        .refine(
-            (date) => /^\d{4}-\d{2}-\d{2}$/.test(date) && !isNaN(Date.parse(date)),
-            { message: "Birthday must be in YYYY-MM-DD format and be a valid date" }
-        ),
-
-    favorite_pet: z.string()
-        .min(1, "Favorite pet is required")
-});
-
-export type Person = z.infer<typeof personSchema>;
 
 export const validateCsv = async <M, P>(options: {
     filePath: string;
@@ -88,15 +65,10 @@ export const validateCsv = async <M, P>(options: {
         });
 
         csvParser.on('end', async () => {
-            if (values.length > 0) {
+            if(values.length > 0) {
                 await model.insertMany(values)
-                    .then(() => {
-                        values.length = 0;
-                    })
-                    .catch((err) => {
-                        databaseErrors.push(err);
-                    });
             }
+
             resolve({ values, errors, rowCount: rowNumber - 1 });
         });
 
@@ -105,19 +77,20 @@ export const validateCsv = async <M, P>(options: {
     });
 };
 
-(async () => {
-    await mongoose.connect('mongodb://localhost:27017/StreamingDB', { bufferCommands: false });
 
-    const t = Date.now();
-    const { values, errors, rowCount } = await validateCsv<typeof User, Person>({
-        filePath: '../../random_data_large.csv',
-        model: User,
-        schema: personSchema,
-        batchSize: 10000
-    });
+// (async () => {
+//     await mongoose.connect('mongodb://localhost:27017/StreamingDB', { bufferCommands: false });
 
-    console.log(errors, rowCount, ((Date.now() - t) / 1000) / 60);
+//     const t = Date.now();
+//     const { values, errors, rowCount } = await validateCsv<typeof User, Person>({
+//         filePath: '../../random_data_large.csv',
+//         model: User,
+//         schema: personSchema,
+//         batchSize: 10000
+//     });
 
-    await mongoose.disconnect();
-}
-)();
+//     console.log(errors, rowCount, ((Date.now() - t) / 1000) / 60);
+
+//     await mongoose.disconnect();
+// }
+// )();
